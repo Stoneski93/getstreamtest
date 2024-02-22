@@ -1,118 +1,92 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {useEffect, useState} from 'react';
+import {View, TouchableOpacity, Text} from 'react-native';
+import {Channel as ChannelType, StreamChat} from 'stream-chat';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+  Channel,
+  ChannelList,
+  Chat,
+  MessageInput,
+  MessageList,
+  MessageType,
+  OverlayProvider,
+} from 'stream-chat-react-native';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const userId = ''; // put here userId
+const appKey = ''; // put here appId
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+const client = StreamChat.getInstance(appKey);
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+export const App = () => {
+  const [channel, setChannel] = useState<ChannelType>();
+  const [clientReady, setClientReady] = useState(false);
+  const [thread, setThread] = useState<MessageType | null>();
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const filters = {
+    members: {$in: [userId]},
   };
 
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+  useEffect(() => {
+    const setupClient = async () => {
+      try {
+        await client.connectUser(
+          {
+            id: userId,
+          },
+          client.devToken(userId),
+        );
+        setClientReady(true);
+      } catch (e) {
+        console.log(e);
+      }
+    };
 
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+    setupClient();
+  }, []);
+
+  const onBackPress = () => {
+    if (thread) {
+      setThread(undefined);
+    } else if (channel) {
+      setChannel(undefined);
+    }
+  };
+
+  if (!clientReady) return <View style={{backgroundColor: 'blue', flex: 1}} />;
+
+  return (
+    <GestureHandlerRootView style={{flex: 1}}>
+      <OverlayProvider topInset={60}>
+        <TouchableOpacity onPress={onBackPress} disabled={!channel}>
+          <View style={{height: 60, paddingLeft: 16, paddingTop: 40}}>
+            {channel && <Text>Back</Text>}
+          </View>
+        </TouchableOpacity>
+        <View style={{flex: 1, backgroundColor: 'yellow'}}>
+          <Chat client={client}>
+            {channel ? (
+              <Channel channel={channel} keyboardVerticalOffset={60}>
+                <MessageList />
+                <MessageInput />
+              </Channel>
+            ) : (
+              <View style={{backgroundColor: 'red', flex: 1}}>
+                <ChannelList
+                  filters={filters}
+                  onSelect={setChannel}
+                  EmptyStateIndicator={() => (
+                    <View style={{flex: 1}}>
+                      <Text>Empty</Text>
+                    </View>
+                  )}
+                />
+              </View>
+            )}
+          </Chat>
+        </View>
+      </OverlayProvider>
+    </GestureHandlerRootView>
+  );
+};
 
 export default App;

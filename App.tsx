@@ -7,7 +7,6 @@ import {
   Chat,
   MessageInput,
   MessageList,
-  MessageType,
   OverlayProvider,
 } from 'stream-chat-react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -20,7 +19,6 @@ const client = StreamChat.getInstance(appKey);
 export const App = () => {
   const [channel, setChannel] = useState<ChannelType>();
   const [clientReady, setClientReady] = useState(false);
-  const [thread, setThread] = useState<MessageType | null>();
 
   const filters = {
     members: {$in: [userId]},
@@ -45,9 +43,7 @@ export const App = () => {
   }, []);
 
   const onBackPress = () => {
-    if (thread) {
-      setThread(undefined);
-    } else if (channel) {
+    if (channel) {
       setChannel(undefined);
     }
   };
@@ -62,7 +58,7 @@ export const App = () => {
             {channel && <Text>Back</Text>}
           </View>
         </TouchableOpacity>
-        <View style={{flex: 1, backgroundColor: 'yellow'}}>
+        <View style={{flex: 1}}>
           <Chat client={client}>
             {channel ? (
               <Channel channel={channel} keyboardVerticalOffset={60}>
@@ -70,17 +66,7 @@ export const App = () => {
                 <MessageInput />
               </Channel>
             ) : (
-              <View style={{backgroundColor: 'red', flex: 1}}>
-                <ChannelList
-                  filters={filters}
-                  onSelect={setChannel}
-                  EmptyStateIndicator={() => (
-                    <View style={{flex: 1}}>
-                      <Text>Empty</Text>
-                    </View>
-                  )}
-                />
-              </View>
+              <ChannelList filters={filters} onSelect={setChannel} />
             )}
           </Chat>
         </View>
